@@ -1,9 +1,11 @@
 local zoomed = false
 local camera = nil
-local lastAllowedCam = 0
 
+local function interpolateFOV(currentFOV, targetFOV, speed)
+    return currentFOV + (targetFOV - currentFOV) / speed
+end
 
--- ox_lib Keybind: Zoom hold
+-- Keybind setup using ox_lib
 lib.addKeybind({
     name = 'zoom_camera',
     description = 'Hold to Zoom Camera',
@@ -24,41 +26,33 @@ lib.addKeybind({
     onHold = true
 })
 
--- Thread: Disable controls & manage view mode
+-- Disable shooting/aiming while zoomed
 CreateThread(function()
     while true do
         Wait(0)
+        -- Disable controls while zoomed
         if zoomed then
-            -- Lock view modes
-            enforceCameraView()
-
-            -- Disable camera toggle key (V)
-            DisableControlAction(0, 0, true)
-
-            -- Shooting & Melee
             if Config.disableShooting then
-                DisablePlayerFiring(PlayerId(), true)
-                DisableControlAction(0, 24, true)
-                DisableControlAction(0, 69, true)
-                DisableControlAction(0, 92, true)
-                DisableControlAction(0, 114, true)
-                DisableControlAction(0, 140, true)
-                DisableControlAction(0, 141, true)
-                DisableControlAction(0, 142, true)
-            end
+        -- FULL BLOCK FOR SHOOTING
+        DisablePlayerFiring(PlayerId(), true)                -- HARD prevent firing
+        DisableControlAction(0, 24, true)                    -- INPUT_ATTACK
+        DisableControlAction(0, 69, true)                    -- INPUT_VEH_ATTACK
+        DisableControlAction(0, 92, true)                    -- INPUT_VEH_PASSENGER_ATTACK
+        DisableControlAction(0, 114, true)                   -- INPUT_VEH_FLY_ATTACK
+        DisableControlAction(0, 140, true)                   -- Melee light
+        DisableControlAction(0, 141, true)                   -- Melee heavy
+        DisableControlAction(0, 142, true)                   -- Melee alternate
+    end
+    if Config.disableAiming then
+        DisableControlAction(0, 25, true) -- INPUT_AIM
+        DisableControlAction(0, 68, true) -- Vehicle Aim
+    end
+end
 
-            -- Aiming
-            if Config.disableAiming then
-                DisableControlAction(0, 25, true)
-                DisableControlAction(0, 68, true)
-            end
-        else
-            Wait(100) -- Reduce CPU usage when not zooming
-        end
     end
 end)
 
--- Thread: Handle camera FOV update
+-- Zoom logic thread
 CreateThread(function()
     while true do
         Wait(0)
@@ -76,8 +70,6 @@ CreateThread(function()
                 DestroyCam(camera, false)
                 camera = nil
             end
-        else
-            Wait(100) -- Reduce usage when no camera
         end
     end
 end)
