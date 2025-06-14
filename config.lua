@@ -1,13 +1,11 @@
 Config = {}
 
-Config.ZoomKey = 'Z' -- default key for ox_lib keybind
+-- ox_lib keybind format (use any key as default)
+Config.ZoomKey = 'Z'
 
--- Zoom camera config
+-- Camera settings
 Config.zoomFOV = 20.0
 Config.normalFOV = 50.0
 Config.zoomSpeed = 2.0
-
--- Block controls
 Config.disableShooting = true
 Config.disableAiming = true
-
