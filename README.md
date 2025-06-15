@@ -5,3 +5,6 @@ Fivem Shoulder cam
  Dependencies : ox_lib -- for keybind
 
  lw-focus allow palyer to zome by hold key (Shoulder cam) 
+
+
+ Discord ID : lonelywolf0611
