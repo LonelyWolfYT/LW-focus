@@ -1,14 +1,6 @@
-local zoomed = false
-local camera = nil
-
--- Camera mode constants
-local THIRD_PERSON_NEAR = 0
-local THIRD_PERSON_MEDIUM = 1
-local THIRD_PERSON_FAR = 2
-local CINEMATIC = 3
+local zoomed, camera = false, nil
 local FIRST_PERSON = 4
 
--- Smooth FOV interpolation
 local function interpolateFOV(currentFOV, targetFOV, speed)
     return currentFOV + (targetFOV - currentFOV) / speed
 end
@@ -31,47 +23,54 @@ local function activateZoomCamera()
         SetCamActive(camera, true)
         RenderScriptCams(true, false, 0, true, true)
     end
-    SetCamCoord(camera, GetGameplayCamCoord())
-    SetCamRot(camera, GetGameplayCamRot(2), 2)
 end
 
--- Zoom updater: runs only while zooming
 local function startZoomUpdater()
     if not camera then return end
     CreateThread(function()
+        local targetFOV, speed = Config.zoomFOV, Config.zoomSpeed
+        local normalFOV = Config.normalFOV
+
         while zoomed and camera do
-            local targetFOV = Config.zoomFOV
+            -- Avoid constant calls if player doesn't move much
+            local camCoord = GetGameplayCamCoord()
+            local camRot = GetGameplayCamRot(2)
             local currentFOV = GetCamFov(camera)
-            local newFOV = interpolateFOV(currentFOV, targetFOV, Config.zoomSpeed)
-            SetCamFov(camera, newFOV)
-            SetCamCoord(camera, GetGameplayCamCoord())
-            SetCamRot(camera, GetGameplayCamRot(2), 2)
+            local newFOV = interpolateFOV(currentFOV, targetFOV, speed)
+
+            if math.abs(newFOV - currentFOV) > 0.05 then
+                SetCamFov(camera, newFOV)
+            end
+
+            SetCamCoord(camera, camCoord)
+            SetCamRot(camera, camRot, 2)
 
             if isPlayerInFirstPerson() then
                 zoomed = false
                 break
             end
 
-            Wait(0)
+            Wait(1) -- Slight delay reduces CPU load dramatically
         end
 
         if camera then
             local cur = GetCamFov(camera)
-            while math.abs(cur - Config.normalFOV) > 0.5 do
-                cur = interpolateFOV(cur, Config.normalFOV, Config.zoomSpeed)
+            while math.abs(cur - normalFOV) > 0.3 do
+                cur = interpolateFOV(cur, normalFOV, speed)
                 SetCamFov(camera, cur)
-                Wait(0)
+                Wait(1)
             end
             resetZoomCamera()
         end
     end)
 end
 
--- Disable shooting and aiming while zoomed
 local function startDisableControlsThread()
+    if not (Config.disableShooting or Config.disableAiming) then return end
     CreateThread(function()
+        local disableShoot, disableAim = Config.disableShooting, Config.disableAiming
         while zoomed do
-            if Config.disableShooting then
+            if disableShoot then
                 DisablePlayerFiring(PlayerId(), true)
                 DisableControlAction(0, 24, true)
                 DisableControlAction(0, 69, true)
@@ -81,23 +80,21 @@ local function startDisableControlsThread()
                 DisableControlAction(0, 141, true)
                 DisableControlAction(0, 142, true)
             end
-            if Config.disableAiming then
+            if disableAim then
                 DisableControlAction(0, 25, true)
                 DisableControlAction(0, 68, true)
             end
-            Wait(0)
+            Wait(2) -- control disabling doesn’t need to run every frame
         end
     end)
 end
 
--- Keybind for zoom (ox_lib)
 lib.addKeybind({
     name = 'zoom_camera',
     description = 'Hold to Zoom Camera',
     defaultKey = Config.ZoomKey or 'Z',
     onPressed = function()
-        if isPlayerInFirstPerson() then return end
-        if zoomed then return end
+        if zoomed or isPlayerInFirstPerson() then return end
         zoomed = true
         activateZoomCamera()
         startZoomUpdater()
@@ -109,7 +106,8 @@ lib.addKeybind({
     onHold = true
 })
 
---------------------------------------------------------------------
+
+--[[--------------------------------------------------------------------
 -- ✅ CUSTOM CAMERA SWITCH CONTROL (replaces "V")
 --------------------------------------------------------------------
 if Config.CameraSwitch then 
@@ -138,5 +136,6 @@ CreateThread(function()
         end
     end
 end)
-end
+end ]]--
+
 
