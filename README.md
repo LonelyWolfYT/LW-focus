@@ -6,5 +6,6 @@ Fivem Shoulder cam
 
  lw-focus allow palyer to zome by hold key (Shoulder cam) 
 
-
+ms - on use - 0.04ms
+ideal - 0.00 ms
  Discord ID : lonelywolf0611
